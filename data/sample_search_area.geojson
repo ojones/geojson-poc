@@ -1,0 +1,25 @@
+{
+  "type": "Feature",
+  "properties": {
+    "name": "Sample search area (illustrative)",
+    "note": "Hand-drawn synthetic polygon near the Marin Headlands, California. Not an actual search area."
+  },
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [-122.5075, 37.8255],
+        [-122.5060, 37.8230],
+        [-122.4985, 37.8222],
+        [-122.4920, 37.8238],
+        [-122.4905, 37.8275],
+        [-122.4930, 37.8300],
+        [-122.4975, 37.8290],
+        [-122.4990, 37.8268],
+        [-122.5030, 37.8295],
+        [-122.5068, 37.8290],
+        [-122.5075, 37.8255]
+      ]
+    ]
+  }
+}

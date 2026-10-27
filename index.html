@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fieldline Search Mission Replay</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Fieldline Search Mission Replay</h1>
+    <p class="disclosure" id="disclosure">
+      <strong>SIMULATED DATA.</strong> Not connected to or controlling any aircraft or sensor. Nothing here is evidence of detection, flight planning, or operational guidance.
+    </p>
+  </header>
+
+  <div class="status-row">
+    <div id="status" class="status" role="status" aria-live="polite" data-state="ready">○ Ready</div>
+    <div id="errors" class="errors" role="alert" hidden></div>
+  </div>
+
+  <main class="layout">
+    <form id="setup-form" class="panel setup" novalidate>
+      <h2>Mission setup</h2>
+
+      <p class="field"><span class="label">Scenario</span> <strong>Nighttime search and rescue</strong> <small>(the only scenario in v0.1)</small></p>
+
+      <fieldset>
+        <legend>Search-area boundary</legend>
+        <p id="boundary-label" class="boundary-label">No boundary loaded</p>
+        <label for="boundary-file">GeoJSON file (Polygon or MultiPolygon)</label>
+        <input id="boundary-file" type="file" accept=".geojson,.json,application/geo+json,application/json">
+        <small>Read locally in your browser; never uploaded. Max 10 km across; min 2,500 m².</small>
+        <label for="sample-select">Sample areas</label>
+        <select id="sample-select"></select>
+        <button type="button" id="load-sample" class="secondary">Load sample area</button>
+      </fieldset>
+
+      <fieldset>
+        <legend>Assumptions</legend>
+        <label for="pattern">Route pattern</label>
+        <select id="pattern">
+          <option value="parallel_sweep">Parallel sweep</option>
+          <option value="crosshatch">Crosshatch (two orientations)</option>
+        </select>
+
+        <label for="sensor">Sensor assumption</label>
+        <select id="sensor">
+          <option value="thermal">Thermal</option>
+          <option value="visible_light">Visible light</option>
+        </select>
+        <small>A label only. Sensor physics and detection are not modeled.</small>
+
+        <label for="altitude">Nominal altitude (m)</label>
+        <input id="altitude" type="number" inputmode="decimal" min="10" max="500" step="any" value="60">
+        <small>10–500 m. Assumed, not measured.</small>
+
+        <label for="swath">Assumed swath width (m)</label>
+        <input id="swath" type="number" inputmode="decimal" min="10" max="500" step="any" value="100">
+        <small>10–500 m. Search lines are spaced at 90% of swath.</small>
+
+        <label for="seed">Random seed</label>
+        <input id="seed" type="number" inputmode="numeric" min="0" max="4294967295" step="1" value="42">
+        <small>Whole number, 0–4,294,967,295. Same inputs and seed reproduce the same run.</small>
+
+        <label class="check"><input id="gps-dip" type="checkbox" checked> Include one simulated GPS-quality dip</label>
+      </fieldset>
+
+      <div class="actions">
+        <button type="submit" id="generate" class="primary">Generate &amp; run mission</button>
+        <button type="button" id="export-csv" class="secondary" disabled>Export simulated log (CSV)</button>
+      </div>
+    </form>
+
+    <section class="stage" aria-label="Map and playback">
+      <div class="map-wrap">
+        <div id="map" role="application" aria-label="Map of the search area, planned route and simulated track"></div>
+        <ul class="legend" aria-label="Map legend">
+          <li><span class="swatch boundary"></span> Search boundary</li>
+          <li><span class="swatch search"></span> Planned search legs</li>
+          <li><span class="swatch connector"></span> Planned turns / transit</li>
+          <li><span class="swatch track"></span> Simulated flown track</li>
+          <li><span class="swatch degraded"></span> ⚠ Simulated GPS-quality dip</li>
+          <li><span class="swatch footprint"></span> Assumed footprint</li>
+        </ul>
+        <p id="map-notice" class="map-notice" role="status" hidden>Base map tiles are unavailable (offline?). Mission data and results are still shown.</p>
+        <p id="event-flag" class="event-flag" role="status" hidden>⚠ Simulated GPS-quality dip in progress — modeled uncertainty is higher</p>
+      </div>
+
+      <div class="playback panel" id="playback" aria-label="Playback controls">
+        <button type="button" id="restart" disabled>⟲ Restart</button>
+        <button type="button" id="play-pause" disabled aria-label="Play">▶ Play</button>
+        <label class="visually-hidden" for="timeline">Mission timeline</label>
+        <input id="timeline" type="range" min="0" max="0" step="1" value="0" disabled>
+        <output id="time-readout" for="timeline">0:00 / 0:00</output>
+        <label for="speed">Speed</label>
+        <select id="speed">
+          <option value="15">15×</option>
+          <option value="60" selected>60×</option>
+          <option value="240">240×</option>
+        </select>
+        <p id="live-readout" class="live-readout"></p>
+      </div>
+    </section>
+
+    <section id="results" class="panel results" aria-label="Results" hidden>
+      <h2>Results <small>(run <span id="run-id"></span>)</small></h2>
+      <dl class="metrics">
+        <div><dt>Simulated duration</dt><dd id="metric-duration"></dd></div>
+        <div><dt>Mean route deviation</dt><dd id="metric-mean-deviation"></dd></div>
+        <div><dt>Max route deviation</dt><dd id="metric-max-deviation"></dd></div>
+        <div><dt>Estimated geometric coverage</dt><dd id="metric-coverage"></dd></div>
+        <div><dt>Repeat coverage (2+ legs)</dt><dd id="metric-repeat-coverage"></dd></div>
+        <div><dt>GPS-quality event</dt><dd id="metric-gps-event"></dd></div>
+      </dl>
+      <p class="help">Deviation is the distance from each simulated position to its planned route segment, over all samples including turns and transit. Coverage is a coarse geometric estimate of planned search legs only; it is <strong>not</strong> usable imagery, sensor detection, or successful search coverage. <span id="coverage-method"></span></p>
+      <h3>Interpretation</h3>
+      <p id="interpretation"></p>
+      <h3>Limitations</h3>
+      <ul id="limitations"></ul>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>Modeled: planned geometry, seeded synthetic positions, assumed footprint. Not modeled: sensor detection, imagery, terrain, weather, obstacles, airspace, vehicle dynamics. Not flight planning software.</p>
+    <p>Your GeoJSON stays in this browser. The base map requests tiles from OpenStreetMap, which can reveal the viewed area to that provider. Map data &copy; OpenStreetMap contributors.</p>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>

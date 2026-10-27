@@ -1,0 +1,20 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Three small islands (illustrative)",
+        "note": "Hand-drawn synthetic MultiPolygon with separated islands. Not an actual search area."
+      },
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [[[-122.4700, 37.8600], [-122.4660, 37.8590], [-122.4640, 37.8620], [-122.4670, 37.8650], [-122.4705, 37.8635], [-122.4700, 37.8600]]],
+          [[[-122.4600, 37.8570], [-122.4560, 37.8565], [-122.4550, 37.8595], [-122.4585, 37.8605], [-122.4600, 37.8570]]],
+          [[[-122.4620, 37.8680], [-122.4585, 37.8675], [-122.4580, 37.8700], [-122.4615, 37.8705], [-122.4620, 37.8680]]]
+        ]
+      }
+    }
+  ]
+}

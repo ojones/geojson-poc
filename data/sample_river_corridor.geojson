@@ -1,0 +1,17 @@
+{
+  "type": "Feature",
+  "properties": {
+    "name": "Winding river corridor (illustrative)",
+    "note": "Hand-drawn synthetic long, narrow, bending Polygon. Not an actual search area."
+  },
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [-110.8, 43.6], [-110.794, 43.6], [-110.785, 43.6072], [-110.7772, 43.6168],
+        [-110.767, 43.624], [-110.758, 43.6252], [-110.758, 43.6273], [-110.7685, 43.6261],
+        [-110.7793, 43.6189], [-110.7874, 43.6093], [-110.8, 43.6021], [-110.8, 43.6]
+      ]
+    ]
+  }
+}

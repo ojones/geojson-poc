@@ -1,0 +1,14 @@
+{
+  "type": "Feature",
+  "properties": {
+    "name": "Forest block with excluded clearing (illustrative)",
+    "note": "Hand-drawn synthetic Polygon with one hole that is excluded from the search. Not an actual search area."
+  },
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [[-121.6000, 39.2000], [-121.5850, 39.2005], [-121.5810, 39.2110], [-121.5925, 39.2165], [-121.6055, 39.2105], [-121.6000, 39.2000]],
+      [[-121.5945, 39.2055], [-121.5935, 39.2095], [-121.5885, 39.2085], [-121.5895, 39.2050], [-121.5945, 39.2055]]
+    ]
+  }
+}
