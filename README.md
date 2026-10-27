@@ -6,6 +6,10 @@ A small browser proof of concept: load a search-area polygon, generate a repeata
 
 Spec: [initial-spec.md](initial-spec.md).
 
+## Deploy
+
+Pushes to `main` run `npm test` and publish the static app to GitHub Pages (`.github/workflows/pages.yml`). One-time setup: repo Settings → Pages → Source: GitHub Actions.
+
 ## Run
 
 ```sh
