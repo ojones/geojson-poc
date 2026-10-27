@@ -24,6 +24,7 @@ export function positionAt(samples, t) {
     position_quality: a.position_quality,
     horizontal_uncertainty_m: a.horizontal_uncertainty_m,
     segment_type: a.segment_type,
+    battery_pct: a.battery_pct,
     route_segment_index: a.route_segment_index,
   };
 }

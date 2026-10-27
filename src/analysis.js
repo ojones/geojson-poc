@@ -28,25 +28,48 @@ export function qualityEvents(samples) {
 
 export const LIMITATIONS = [
   'Synthetic data: the track is generated, not recorded from an aircraft.',
-  'No sensor detection, imagery quality, terrain, weather, or obstacles are modeled.',
+  'No sensor detection, imagery quality, weather, or obstacles are modeled. Optional terrain is a bare-earth elevation model for context only.',
+  'Battery state is an illustrative linear drain, not a vehicle model; it does not imply the aircraft would return, land, or finish a mission.',
   'Estimated geometric coverage is not usable imagery, sensor detection, or successful search coverage.',
   'The assumed footprint is a circle from swath width / 2, not a camera frustum.',
 ];
 
-export function analyzeMission({ boundary, scenario, route, samples }) {
-  const deviation = routeDeviation(route, samples, boundary.projection);
-  const coverage = computeCoverage(boundary, route, scenario.swath_width_m);
-  const analysis = {
-    duration_s: samples[samples.length - 1].timestamp_s - samples[0].timestamp_s,
-    mean_route_deviation_m: deviation.mean,
-    max_route_deviation_m: deviation.max,
+function lengthFields(route) {
+  return {
+    route_length_m: route.total_length_m,
+    search_length_m: route.search_length_m,
+    turn_length_m: route.turn_length_m,
+    transit_length_m: route.transit_length_m,
+  };
+}
+
+function batteryFields(samples, events) {
+  return {
+    final_battery_pct: samples[samples.length - 1].battery_pct,
+    battery_reserve_event: events.find((e) => e.type === 'battery_reserve') ?? null,
+    events,
+  };
+}
+
+function coverageFields(coverage) {
+  return {
     estimated_geometric_coverage_pct: coverage.coverage_pct,
     repeat_coverage_pct: coverage.repeat_coverage_pct,
     coverage_method: coverage.method,
     coverage_cell_size_m: coverage.cell_size_m,
+  };
+}
+
+export function analyzeMission({ boundary, scenario, route, samples, events }) {
+  const deviation = routeDeviation(route, samples, boundary.projection);
+  const analysis = {
+    duration_s: samples[samples.length - 1].timestamp_s - samples[0].timestamp_s,
+    mean_route_deviation_m: deviation.mean,
+    max_route_deviation_m: deviation.max,
+    ...coverageFields(computeCoverage(boundary, route, scenario.swath_width_m)),
     gps_quality_events: qualityEvents(samples),
-    route_length_m: route.total_length_m,
-    search_length_m: route.search_length_m,
+    ...lengthFields(route),
+    ...batteryFields(samples, events),
     sample_count: samples.length,
     diagnostics: route.diagnostics,
     limitations: LIMITATIONS,

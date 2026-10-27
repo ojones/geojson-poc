@@ -1,0 +1,90 @@
+{
+  "type": "FeatureCollection",
+  "properties": {
+    "note": "Hand-drawn synthetic demo trails, not real trails and not from any public dataset.",
+    "synthetic": true
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Demo trail A"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -122.509,
+            37.823
+          ],
+          [
+            -122.504,
+            37.8262
+          ],
+          [
+            -122.5,
+            37.825
+          ],
+          [
+            -122.495,
+            37.8265
+          ],
+          [
+            -122.49,
+            37.8285
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Demo trail B"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -122.503,
+            37.8215
+          ],
+          [
+            -122.501,
+            37.825
+          ],
+          [
+            -122.5,
+            37.83
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Demo trail C"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -122.51,
+            37.83
+          ],
+          [
+            -122.505,
+            37.8285
+          ],
+          [
+            -122.4985,
+            37.824
+          ],
+          [
+            -122.493,
+            37.8228
+          ]
+        ]
+      }
+    }
+  ]
+}

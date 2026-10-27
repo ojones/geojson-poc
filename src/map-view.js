@@ -1,9 +1,12 @@
+import { createContextMap, unavailableContextMap } from './context-map.js';
 import { positionAt } from './replay.js';
 
 const STYLES = {
   boundary: { color: '#1f3a5f', weight: 2, fillColor: '#4f7cac', fillOpacity: 0.12 },
   search: { color: '#6b7280', weight: 3, dashArray: '8 6', opacity: 0.9 },
-  connector: { color: '#9ca3af', weight: 2, dashArray: '2 6', opacity: 0.9 },
+  turn: { color: '#b08968', weight: 2, dashArray: '2 6', opacity: 0.9 },
+  transit: { color: '#9ca3af', weight: 2, dashArray: '10 4 2 4', opacity: 0.9 },
+  reserve: { radius: 7, color: '#fff', weight: 2, fillColor: '#c92a2a', fillOpacity: 1 },
   track: { color: '#d9480f', weight: 3, opacity: 0.95 },
   degraded: { color: '#7b2cbf', weight: 6, opacity: 0.8, dashArray: '1 8', lineCap: 'round' },
   footprint: { color: '#0b7285', weight: 1.5, dashArray: '4 4', fillColor: '#0b7285', fillOpacity: 0.12 },
@@ -19,8 +22,7 @@ function segmentLatLngs(run, type) {
     const { latitude, longitude } = projection.toLatLon(p.x, p.y);
     return [latitude, longitude];
   };
-  const wanted = (s) => (type === 'search' ? s.type === 'search' : s.type !== 'search');
-  return run.route.segments.filter(wanted).map((s) => [toLatLng(s.start), toLatLng(s.end)]);
+  return run.route.segments.filter((s) => s.type === type).map((s) => [toLatLng(s.start), toLatLng(s.end)]);
 }
 
 function headingDegrees(segment) {
@@ -48,12 +50,13 @@ export function createMapView(container, L, handlers) {
     clearRun: () => clearRun(map, layers),
     update: (t) => updateDynamic(layers, t),
     invalidate: () => map.invalidateSize(),
+    context: createContextMap(L, map),
   };
 }
 
 function unavailableView() {
   const noop = () => {};
-  return { showBoundary: noop, showRun: noop, clearRun: noop, update: noop, invalidate: noop, unavailable: true };
+  return { showBoundary: noop, showRun: noop, clearRun: noop, update: noop, invalidate: noop, unavailable: true, context: unavailableContextMap() };
 }
 
 function addTiles(L, map, handlers) {
@@ -93,13 +96,22 @@ function showRun(L, map, layers, run) {
   clearRun(map, layers);
   const planned = [
     L.polyline(segmentLatLngs(run, 'search'), STYLES.search).bindTooltip('Planned search legs'),
-    L.polyline(segmentLatLngs(run, 'connector'), STYLES.connector).bindTooltip('Planned turns / transit (not search)'),
+    L.polyline(segmentLatLngs(run, 'turn'), STYLES.turn).bindTooltip('Planned turns (not search)'),
+    L.polyline(segmentLatLngs(run, 'transit'), STYLES.transit).bindTooltip('Planned transit connectors (not search)'),
+    ...reserveMarkers(L, run),
   ];
   const dynamic = createDynamic(L, run);
   layers.run = [...planned, dynamic.track, dynamic.degraded, dynamic.footprint, dynamic.marker];
   layers.run.forEach((layer) => layer.addTo(map));
   layers.dynamic = dynamic;
   updateDynamic(layers, 0);
+}
+
+function reserveMarkers(L, run) {
+  return run.events.filter((e) => e.type === 'battery_reserve').map((event) => {
+    const sample = run.samples.find((s) => s.timestamp_s === event.timestamp_s);
+    return L.circleMarker(latLng(sample), STYLES.reserve).bindTooltip(`Simulated battery reserve threshold (${event.value}%) reached`);
+  });
 }
 
 function createDynamic(L, run) {

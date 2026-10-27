@@ -1,3 +1,4 @@
+import { batteryAt } from './battery.js';
 import { lerp } from './geo.js';
 import { createRandom } from './random.js';
 
@@ -74,6 +75,7 @@ function toSample(context, k, segment, planned, quality) {
     longitude: observed.longitude,
     altitude_m: context.scenario.altitude_m,
     ...quality,
+    battery_pct: batteryAt(k * TELEMETRY.sample_interval_s),
     segment_type: segment.type,
     synthetic: true,
     route_segment_index: segment.index,

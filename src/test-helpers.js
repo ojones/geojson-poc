@@ -27,8 +27,30 @@ export const SETTINGS = {
   swath_width_m: 100,
   seed: 42,
   simulate_gps_quality_dip: true,
+  battery_reserve_pct: 25,
 };
 
 export function wideRing(lon, lat) {
   return [[lon, lat], [lon + 0.02, lat], [lon + 0.02, lat + 0.005], [lon, lat + 0.005], [lon, lat]];
+}
+
+export function demText(overrides = {}) {
+  const values = Array.from({ length: 16 }, (_, i) => 100 + i);
+  const dem = {
+    format: 'fieldline-dem-v1',
+    source_name: 'Test DEM',
+    crs: 'EPSG:4326',
+    bounds: { west: -122.51, south: 37.82, east: -122.49, north: 37.83 },
+    width: 4,
+    height: 4,
+    vertical_units: 'm',
+    no_data_value: -9999,
+    values,
+    ...overrides,
+  };
+  return JSON.stringify(dem);
+}
+
+export function trailsText(coordinates, type = 'LineString') {
+  return JSON.stringify({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: { name: 'Test trail' }, geometry: { type, coordinates } }] });
 }
