@@ -1,4 +1,5 @@
 import { analyzeMission } from './analysis.js';
+import { buildEvents, tagSamples } from './events.js';
 import { buildScenario } from './scenario.js';
 import { planRoute } from './route-planner.js';
 import { hashString } from './random.js';
@@ -14,7 +15,8 @@ export function buildRun(boundary, settings) {
   if (!planned.ok) return planned;
   const simulated = simulateTelemetry(planned.route, scenario, boundary.projection);
   if (!simulated.ok) return simulated;
-  const { samples, event } = simulated;
-  const analysis = analyzeMission({ boundary, scenario, route: planned.route, samples });
-  return { ok: true, run: { id: runId(scenario), scenario, boundary, route: planned.route, samples, event, analysis } };
+  const events = buildEvents(simulated.samples, simulated.event, scenario);
+  const samples = tagSamples(simulated.samples, events);
+  const analysis = analyzeMission({ boundary, scenario, route: planned.route, samples, events });
+  return { ok: true, run: { id: runId(scenario), scenario, boundary, route: planned.route, samples, event: simulated.event, events, analysis } };
 }

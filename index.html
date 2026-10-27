@@ -64,12 +64,39 @@
         <input id="seed" type="number" inputmode="numeric" min="0" max="4294967295" step="1" value="42">
         <small>Whole number, 0–4,294,967,295. Same inputs and seed reproduce the same run.</small>
 
+        <label for="reserve">Battery reserve threshold (%)</label>
+        <input id="reserve" type="number" inputmode="decimal" min="5" max="95" step="any" value="25">
+        <small>5–95 %. The simulated battery drains linearly from 100 % at 4.5 %/min (an illustrative assumption, not a vehicle model).</small>
+
         <label class="check"><input id="gps-dip" type="checkbox" checked> Include one simulated GPS-quality dip</label>
+      </fieldset>
+
+      <fieldset id="context-data">
+        <legend>Optional context data</legend>
+        <small>Situational display only. Neither layer changes the route, telemetry, or coverage numbers.</small>
+
+        <label for="trails-file">Trails (GeoJSON LineString / MultiLineString)</label>
+        <input id="trails-file" type="file" accept=".geojson,.json,application/geo+json,application/json">
+        <label for="trails-attribution">Attribution for this file</label>
+        <input id="trails-attribution" type="text" placeholder="e.g. © OpenStreetMap contributors (ODbL)">
+        <button type="button" id="load-demo-trails" class="secondary">Load synthetic demo trails</button>
+        <label class="check"><input id="trails-toggle" type="checkbox" checked disabled> Show trail context</label>
+        <button type="button" id="trails-remove" class="secondary" disabled>Remove trails</button>
+        <p id="trails-info" class="context-info">No trail layer loaded.</p>
+
+        <label for="terrain-file">Elevation model (fieldline-dem-v1 JSON)</label>
+        <input id="terrain-file" type="file" accept=".json,application/json">
+        <small>Convert a GeoTIFF first; see the README.</small>
+        <button type="button" id="load-demo-terrain" class="secondary">Load synthetic demo terrain</button>
+        <label class="check"><input id="terrain-toggle" type="checkbox" checked disabled> Show terrain relief</label>
+        <button type="button" id="terrain-remove" class="secondary" disabled>Remove terrain</button>
+        <p id="terrain-info" class="context-info">No terrain data loaded.</p>
       </fieldset>
 
       <div class="actions">
         <button type="submit" id="generate" class="primary">Generate &amp; run mission</button>
         <button type="button" id="export-csv" class="secondary" disabled>Export simulated log (CSV)</button>
+        <button type="button" id="export-metadata" class="secondary" disabled>Export run metadata (JSON)</button>
       </div>
     </form>
 
@@ -79,7 +106,11 @@
         <ul class="legend" aria-label="Map legend">
           <li><span class="swatch boundary"></span> Search boundary</li>
           <li><span class="swatch search"></span> Planned search legs</li>
-          <li><span class="swatch connector"></span> Planned turns / transit</li>
+          <li><span class="swatch turn"></span> Planned turns</li>
+          <li><span class="swatch transit"></span> Planned transit connectors</li>
+          <li><span class="swatch trail"></span> Trail context</li>
+          <li><span class="swatch relief"></span> Terrain relief (elevation model)</li>
+          <li><span class="swatch reserve"></span> Simulated battery reserve reached</li>
           <li><span class="swatch track"></span> Simulated flown track</li>
           <li><span class="swatch degraded"></span> ⚠ Simulated GPS-quality dip</li>
           <li><span class="swatch footprint"></span> Assumed footprint</li>
@@ -102,6 +133,18 @@
         </select>
         <p id="live-readout" class="live-readout"></p>
       </div>
+
+      <section class="panel" id="event-timeline" aria-label="Mission events">
+        <h2>Mission events <small>(synthetic)</small></h2>
+        <ol class="event-list"></ol>
+        <p class="timeline-empty" hidden>No simulated events in this run.</p>
+      </section>
+
+      <section class="panel" id="terrain-profile" aria-label="Terrain profile">
+        <h2>Terrain profile</h2>
+        <svg role="img" aria-label="Elevation along the planned route with a playhead following replay" hidden></svg>
+        <p class="profile-message">No terrain data loaded.</p>
+      </section>
     </section>
 
     <section id="results" class="panel results" aria-label="Results" hidden>
@@ -113,7 +156,18 @@
         <div><dt>Estimated geometric coverage</dt><dd id="metric-coverage"></dd></div>
         <div><dt>Repeat coverage (2+ legs)</dt><dd id="metric-repeat-coverage"></dd></div>
         <div><dt>GPS-quality event</dt><dd id="metric-gps-event"></dd></div>
+        <div><dt>Search distance (feeds coverage)</dt><dd id="metric-search-distance"></dd></div>
+        <div><dt>Total flown distance</dt><dd id="metric-total-distance"></dd></div>
+        <div><dt>Simulated battery</dt><dd id="metric-battery"></dd></div>
       </dl>
+      <h3>What is and is not estimated</h3>
+      <ul class="estimates">
+        <li><strong>Geometric route coverage:</strong> <span id="coverage-summary"></span></li>
+        <li><strong>Terrain-only visibility:</strong> not calculated in this version.</li>
+        <li><strong>Actual sensor detection:</strong> not modeled.</li>
+      </ul>
+      <h3>Data provenance</h3>
+      <ul id="provenance"></ul>
       <p class="help">Deviation is the distance from each simulated position to its planned route segment, over all samples including turns and transit. Coverage is a coarse geometric estimate of planned search legs only; it is <strong>not</strong> usable imagery, sensor detection, or successful search coverage. <span id="coverage-method"></span></p>
       <h3>Interpretation</h3>
       <p id="interpretation"></p>
@@ -123,8 +177,8 @@
   </main>
 
   <footer class="foot">
-    <p>Modeled: planned geometry, seeded synthetic positions, assumed footprint. Not modeled: sensor detection, imagery, terrain, weather, obstacles, airspace, vehicle dynamics. Not flight planning software.</p>
-    <p>Your GeoJSON stays in this browser. The base map requests tiles from OpenStreetMap, which can reveal the viewed area to that provider. Map data &copy; OpenStreetMap contributors.</p>
+    <p>Modeled: planned geometry, seeded synthetic positions, assumed footprint. Not modeled: sensor detection, imagery, terrain-based visibility, weather, obstacles, airspace, vehicle dynamics. Not flight planning software.</p>
+    <p>Your GeoJSON stays in this browser. The base map requests tiles from OpenStreetMap, which can reveal the viewed area to that provider. Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>. Optional trail and terrain files are read locally and never uploaded.</p>
   </footer>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>

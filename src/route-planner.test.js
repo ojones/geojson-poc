@@ -93,3 +93,13 @@ test('a small area still gets a centered line when the swath is wider than it', 
   const tiny = parseOk(polygonText([squareRing(-122.5, 37.8, 0.0006)]));
   assert.equal(plan(tiny, { swath_width_m: 500 }).route.diagnostics.search_legs, 1);
 });
+
+test('lengths are reported per segment type and transit never counts as search', () => {
+  const concave = plan(sampleBoundary(), { swath_width_m: 50 }).route;
+  const sum = (type) => concave.segments.filter((s) => s.type === type).reduce((total, s) => total + s.length_m, 0);
+  assert.equal(concave.search_length_m, sum('search'));
+  assert.equal(concave.turn_length_m, sum('turn'));
+  assert.equal(concave.transit_length_m, sum('transit'));
+  assert.ok(Math.abs(concave.total_length_m - (sum('search') + sum('turn') + sum('transit'))) < 1e-6);
+  assert.ok(concave.transit_length_m > 0);
+});

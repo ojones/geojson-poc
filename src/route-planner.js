@@ -168,5 +168,5 @@ export function planRoute(boundary, scenario) {
   const segments = numbered(assembleSegments(legs));
   const diagnostics = diagnosticsOf(segments, boundary.projected.flat(), lineSpacing(scenario.swath_width_m));
   const waypoints = toWaypoints(segments, boundary.projection, scenario.altitude_m);
-  return { ok: true, route: { segments, waypoints, total_length_m: sumLength(segments), search_length_m: sumLength(segments, 'search'), diagnostics } };
+  return { ok: true, route: { segments, waypoints, total_length_m: sumLength(segments), search_length_m: sumLength(segments, 'search'), turn_length_m: sumLength(segments, 'turn'), transit_length_m: sumLength(segments, 'transit'), diagnostics } };
 }

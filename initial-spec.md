@@ -436,3 +436,9 @@ Do not claim acceptance from code inspection alone. Report which checks were run
 4. Keep the v0.1 scenario as simulated nighttime SAR. Do not add real flight control or target detection.
 5. Update README and this spec if implementation behavior or supported geometry changes.
 6. At handoff, summarize completed component IDs, acceptance criteria verified, commands/checks run, and known gaps.
+
+## 19. Upgrade addendum (v0.2.0)
+
+Implemented from [`UPGRADE-REQUIREMENTS.md`](UPGRADE-REQUIREMENTS.md) (P0): components C-15 (trail context loader), C-16 (DEM loader, `fieldline-dem-v1`), C-17 (relief renderer and profile), C-19 (typed segments and structured events), C-20 (battery model `linear_drain_v1`), and C-21 (event timeline). C-18 (terrain occlusion, P1) is deferred.
+
+Contract additions: `MissionScenario.battery_reserve_pct` (default 25); `TelemetrySample.battery_pct` and `events`; run-level `events` (`MissionEvent`); `route.turn_length_m` and `route.transit_length_m`; analysis fields `final_battery_pct` and `battery_reserve_event`. Optional context layers and DEM metadata live outside the scenario (they do not affect the run id) and are exported with the CSV header and the metadata JSON. Supported geometry for context: `LineString` and `MultiLineString` trails; terrain is `EPSG:4326` grids only. See the README for format details and limits.

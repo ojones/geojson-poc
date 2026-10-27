@@ -1,9 +1,13 @@
 import { parseBoundary } from './boundary.js';
-import { downloadCsv } from './export.js';
+import { createContextControls } from './context-controls.js';
+import { downloadCsv, downloadMetadata } from './export.js';
+import { highlightEvents, renderTimeline } from './timeline-view.js';
+import { buildProfile } from './profile.js';
+import { createProfileView } from './profile-view.js';
 import { createMapView } from './map-view.js';
 import { buildRun } from './mission.js';
 import { createReplay, positionAt } from './replay.js';
-import { clearResults, renderLiveReadout, renderResults } from './results-view.js';
+import { clearResults, refreshProvenance, renderLiveReadout, renderResults } from './results-view.js';
 import { formatDuration } from './narrative.js';
 import { DEFAULT_SAMPLE, SAMPLES } from './samples.js';
 import { DEFAULTS, parseSettings } from './scenario.js';
@@ -11,7 +15,7 @@ import { setStatus, showErrors } from './status-view.js';
 
 const $ = (id) => document.getElementById(id);
 
-const app = { boundary: null, run: null, replay: null, map: null };
+const app = { boundary: null, run: null, replay: null, map: null, context: { trails: null, dem: null, profile: null }, profileView: null, controls: null };
 
 function readSettings() {
   return parseSettings({
@@ -21,6 +25,7 @@ function readSettings() {
     swath_width_m: $('swath').value,
     seed: $('seed').value,
     simulate_gps_quality_dip: $('gps-dip').checked,
+    battery_reserve_pct: $('reserve').value,
   });
 }
 
@@ -36,6 +41,25 @@ function reportErrors(messages) {
 function setPlaybackEnabled(enabled) {
   for (const id of ['restart', 'play-pause', 'timeline']) $(id).disabled = !enabled;
   $('export-csv').disabled = !enabled;
+  $('export-metadata').disabled = !enabled;
+}
+
+function exportContext() {
+  const { trails, dem, profile } = app.context;
+  return { trails, terrain: dem?.metadata ?? null, profile };
+}
+
+function refreshProfile() {
+  const { dem } = app.context;
+  app.context.profile = dem && app.run ? buildProfile(app.run, dem) : null;
+  if (app.context.profile) app.profileView.show(app.context.profile);
+  else app.profileView.clear(dem ? 'Generate a mission to see the terrain profile.' : undefined);
+}
+
+function onContextChanged() {
+  refreshProfile();
+  if (app.run) refreshProvenance($('results'), app.run, exportContext());
+  if (app.run && app.replay) app.profileView.update(app.replay.time, app.context.profile);
 }
 
 function stopReplay() {
@@ -48,6 +72,8 @@ function discardRun() {
   app.run = null;
   app.map.clearRun();
   clearResults($('results'));
+  renderTimeline($('event-timeline'), [], () => {});
+  refreshProfile();
   setPlaybackEnabled(false);
   $('event-flag').hidden = true;
   $('live-readout').textContent = '';
@@ -61,6 +87,7 @@ function describeBoundary(boundary) {
 
 function acceptBoundary(boundary) {
   discardRun();
+  app.controls.reset();
   app.boundary = boundary;
   app.map.showBoundary(boundary);
   $('boundary-label').textContent = `Active boundary: ${describeBoundary(boundary)}`;
@@ -106,6 +133,8 @@ function onFrame(t) {
   $('timeline').value = String(t);
   $('time-readout').textContent = `${formatDuration(t)} / ${formatDuration(samples[samples.length - 1].timestamp_s)}`;
   $('event-flag').hidden = position.position_quality !== 'degraded';
+  highlightEvents($('event-timeline'), app.run.events, t);
+  app.profileView.update(t, app.context.profile);
   renderLiveReadout($('live-readout'), t, position);
 }
 
@@ -120,7 +149,9 @@ function adoptRun(run) {
   discardRun();
   app.run = run;
   app.map.showRun(run);
-  renderResults($('results'), run);
+  renderResults($('results'), run, exportContext());
+  renderTimeline($('event-timeline'), run.events, (t) => app.replay?.seek(t));
+  refreshProfile();
   const duration = run.analysis.duration_s;
   $('timeline').max = String(duration);
   app.replay = createReplay({ duration_s: duration, speed: Number($('speed').value), onFrame, onState: onReplayState });
@@ -158,6 +189,38 @@ function setDefaults() {
   $('swath').value = DEFAULTS.swath_width_m;
   $('seed').value = DEFAULTS.seed;
   $('gps-dip').checked = DEFAULTS.simulate_gps_quality_dip;
+  $('reserve').value = DEFAULTS.battery_reserve_pct;
+}
+
+async function fetchText(path) {
+  const response = await fetch(path).catch(() => null);
+  if (response?.ok) return response.text();
+  reportErrors([`Could not load ${path}. Serve this folder over HTTP instead of opening index.html directly.`]);
+  return null;
+}
+
+async function loadDemo(path, load) {
+  const text = await fetchText(path);
+  if (text !== null) load(text, path.split('/').pop());
+}
+
+async function onContextFile(event, load) {
+  const file = event.target.files[0];
+  if (!file) return;
+  load(await file.text(), file.name);
+  event.target.value = '';
+}
+
+function bindContextEvents() {
+  const { controls } = app;
+  $('trails-file').addEventListener('change', (event) => onContextFile(event, controls.loadTrails));
+  $('terrain-file').addEventListener('change', (event) => onContextFile(event, controls.loadTerrain));
+  $('load-demo-trails').addEventListener('click', () => loadDemo('data/context/sample_trails_synthetic.geojson', controls.loadTrails));
+  $('load-demo-terrain').addEventListener('click', () => loadDemo('data/context/sample_terrain_synthetic.dem.json', controls.loadTerrain));
+  $('trails-toggle').addEventListener('change', (event) => controls.setTrailsVisible(event.target.checked));
+  $('terrain-toggle').addEventListener('change', (event) => controls.setTerrainVisible(event.target.checked));
+  $('trails-remove').addEventListener('click', controls.removeTrails);
+  $('terrain-remove').addEventListener('click', controls.removeTerrain);
 }
 
 function bindEvents() {
@@ -167,7 +230,9 @@ function bindEvents() {
   });
   $('boundary-file').addEventListener('change', onFileChosen);
   $('load-sample').addEventListener('click', () => loadSample());
-  $('export-csv').addEventListener('click', () => app.run && downloadCsv(app.run));
+  $('export-csv').addEventListener('click', () => app.run && downloadCsv(app.run, exportContext()));
+  $('export-metadata').addEventListener('click', () => app.run && downloadMetadata(app.run, exportContext()));
+  bindContextEvents();
   $('restart').addEventListener('click', () => app.replay?.restart());
   $('play-pause').addEventListener('click', () => app.replay && togglePlay());
   $('timeline').addEventListener('input', (event) => app.replay?.seek(Number(event.target.value)));
@@ -183,6 +248,8 @@ function createMap() {
 
 async function start() {
   app.map = createMap();
+  app.profileView = createProfileView($('terrain-profile'));
+  app.controls = createContextControls({ app, ui: $, report: reportErrors, onChange: onContextChanged });
   setDefaults();
   fillSampleChoices();
   bindEvents();

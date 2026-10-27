@@ -11,12 +11,14 @@ export const DEFAULTS = {
   swath_width_m: 100,
   seed: 42,
   simulate_gps_quality_dip: true,
+  battery_reserve_pct: 25,
 };
 
 export const SETTING_LIMITS = {
   altitude_m: { min: 10, max: 500, label: 'Altitude', unit: 'm' },
   swath_width_m: { min: 10, max: 500, label: 'Swath width', unit: 'm' },
   seed: { min: 0, max: 4294967295, label: 'Seed', unit: '' },
+  battery_reserve_pct: { min: 5, max: 95, label: 'Battery reserve threshold', unit: '%' },
 };
 
 function numberProblem(key, raw) {
@@ -40,6 +42,7 @@ export function parseSettings(raw) {
     altitude_m: numberProblem('altitude_m', raw.altitude_m),
     swath_width_m: numberProblem('swath_width_m', raw.swath_width_m),
     seed: numberProblem('seed', raw.seed),
+    battery_reserve_pct: numberProblem('battery_reserve_pct', raw.battery_reserve_pct ?? DEFAULTS.battery_reserve_pct),
   };
   const errors = Object.values(checks).filter((c) => c.error).map((c) => c.error);
   if (errors.length > 0) return { ok: false, errors };

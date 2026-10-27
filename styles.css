@@ -128,6 +128,11 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .swatch.boundary { border-top: 10px solid rgba(79, 124, 172, 0.35); outline: 2px solid #1f3a5f; outline-offset: -2px; }
 .swatch.search { border-top-style: dashed; border-color: #6b7280; }
 .swatch.connector { border-top-style: dotted; border-color: #9ca3af; }
+.swatch.turn { border-top-style: dotted; border-color: #b08968; }
+.swatch.transit { border-top-style: dashed; border-color: #9ca3af; }
+.swatch.trail { border-top: 2px dotted #8a6d3b; }
+.swatch.relief { border-top: 10px solid rgba(150, 190, 140, 0.7); }
+.swatch.reserve { width: 10px; height: 10px; border: 2px solid #fff; border-radius: 50%; background: #c92a2a; outline: 1px solid #c92a2a; }
 .swatch.track { border-color: #d9480f; }
 .swatch.degraded { border-top: 6px dotted #7b2cbf; }
 .swatch.footprint { border-top: 10px solid rgba(11, 114, 133, 0.2); outline: 1.5px dashed #0b7285; outline-offset: -2px; }
@@ -187,3 +192,17 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
 .layout > *, .playback > * { min-width: 0; }
+
+.stage > .panel { margin-top: 12px; }
+.context-info { margin: 6px 0 0; font-size: 0.85rem; color: var(--muted); word-break: break-word; }
+.event-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.event-list button { width: 100%; text-align: left; display: flex; flex-direction: column; gap: 2px; }
+.event-list button.current { background: #fff4e5; border-color: #c2680a; box-shadow: inset 4px 0 0 #c2680a; }
+.event-list span { color: var(--muted); font-size: 0.85rem; }
+#terrain-profile svg { width: 100%; height: auto; display: block; }
+#terrain-profile .axis { stroke: #8c959f; stroke-width: 1; }
+#terrain-profile .tick, #terrain-profile .axis-title { font-size: 10px; fill: var(--muted); }
+#terrain-profile .line { fill: none; stroke: #5b7f3a; stroke-width: 1.5; }
+#terrain-profile .playhead { stroke: #d9480f; stroke-width: 1.5; }
+#terrain-profile .gap { fill: rgba(140, 149, 159, 0.28); stroke: #8c959f; stroke-dasharray: 3 3; }
+.profile-message, .estimates, #provenance { font-size: 0.85rem; color: var(--muted); }
